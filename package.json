@@ -1,0 +1,26 @@
+{
+  "name": "zalip",
+  "version": "0.0.1",
+  "description": "Isometric cubes animation based on html5 canvas",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/goliney/zalip.git"
+  },
+  "keywords": [
+    "canvas",
+    "html5",
+    "cubes",
+    "animation",
+    "isometric"
+  ],
+  "author": "Sergey Goliney <sergey@goliney.com> (http://goliney.com)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/goliney/zalip/issues"
+  },
+  "homepage": "https://github.com/goliney/zalip#readme"
+}
