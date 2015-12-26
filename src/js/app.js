@@ -8,17 +8,25 @@
   var Path = Isomer.Path;
   var Shape = Isomer.Shape;
 
-  var scale = 0.75;
-  var cubeWidth = 62;
-  var cubeHeight = 71;
-  var cubeEdge = 37;
-  var dimension;
+  var cubeWidth = 120;
+  var cubeHeight = 140;
+  var dimensions;
   var center;
 
   var animationTimer;
   var angle;
+  var cubes = [];
+
+  var fps = 30;
 
   init();
+
+  var debounceInit = debounce(init, 250);
+  window.addEventListener('resize', function() {
+    iso.canvas.clear();
+    clearTimeout(animationTimer);
+    debounceInit();
+  });
 
   function init() {
     clearTimeout(animationTimer);
@@ -26,48 +34,119 @@
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // make it square
-    var maxDimension = Math.max(canvas.width, canvas.height);
+    dimensions = {
+      x: Math.ceil(canvas.width / cubeWidth),
+      y: Math.ceil(canvas.height / cubeHeight)
+    };
 
-    var diameter = Math.sqrt(Math.pow(maxDimension, 2) * 2);
-
-    // dimension of matrix
-    dimension = Math.ceil(diameter / (cubeEdge * 2)) + 5; // 5 - extra
-
-    // always even dimension
-    dimension = (dimension & 1) ? dimension : dimension + 1;
-
-    center = Math.floor(dimension / 2);
+    // always even
+    dimensions.x = (dimensions.x & 1) ? dimensions.x : dimensions.x + 1;
+    dimensions.y = (dimensions.y & 1) ? dimensions.y : dimensions.y + 1;
 
     iso = new Isomer(canvas, {
       originX: canvas.width / 2,
-      originY: (canvas.height / 2) + (cubeEdge)
+      originY: (canvas.height / 2) + cubeHeight / 2
     });
 
     angle = 0;
-    animationTimer = setInterval(animate, 1000/30);
+
+    prepareCubes();
+
+    animate();
   }
 
-  function cube (x, y, z) {
-    return Shape.Prism(new Point(x, y, z));
+  function cube (origin) {
+    return Shape.Prism(origin);
+  }
+
+  function prepareCubes() {
+    cubes = [];
+    var centerX = Math.ceil(dimensions.x / 2);
+    var centerY = Math.ceil(dimensions.y / 2);
+    var levelsNum = Math.max(centerX, centerY);
+
+    // very first level with only central cube
+    var x = y = z = 0;
+    cubes.push([{
+      cube: cube(new Point(x, y, z)),
+      center: new Point(x+0.5, y+0.5, z+0.5)
+    }]);
+
+    for (var i=1; i < levelsNum; i++) {
+      var level = [];
+
+      for (var j=i; j > -i; j--) {
+        if (Math.abs(j) > centerX || Math.abs(i) > centerY) {
+          break;
+        }
+        var origin = new Point(j*2, i*2, z);
+        level.push({
+          cube: cube(origin),
+          center: origin.translate(0.5, 0.5, 0.5)
+        });
+      }
+      for (var j=i; j > -i; j--) {
+        if (Math.abs(i) > centerX || Math.abs(j) > centerY) {
+          break;
+        }
+        var origin = new Point(-i*2, j*2, z);
+        level.push({
+          cube: cube(origin),
+          center: origin.translate(0.5, 0.5, 0.5)
+        });
+      }
+      for (var j=-i; j < i; j++) {
+        if (Math.abs(j) > centerX || Math.abs(i) > centerY) {
+          break;
+        }
+        var origin = new Point(j*2, -i*2, z);
+        level.push({
+          cube: cube(origin),
+          center: origin.translate(0.5, 0.5, 0.5)
+        });
+      }
+      for (var j=-i; j < i; j++) {
+        if (Math.abs(i) > centerX || Math.abs(j) > centerY) {
+          break;
+        }
+        var origin = new Point(i*2, j*2, z);
+        level.push({
+          cube: cube(origin),
+          center: origin.translate(0.5, 0.5, 0.5)
+        });
+      }
+
+      cubes.push(level);
+    }
   }
 
   function animate() {
+    animationTimer = setTimeout(function() {
+      requestAnimationFrame(animate);
       iso.canvas.clear();
 
-      for (var x = 0; x < dimension; x++) {
-        for (var y = 0; y < dimension; y++) {
-          var dx = (x - center) * 2;
-          var dy = (y - center) * 2;
+      for (var level=0; level < cubes.length; level++) {
+        for (var i=0; i < cubes[level].length; i++) {
           iso.add(
-            cube(dx, dy, 0)
-            .rotateZ(Point(dx + 0.5, dy + 0.5, 0.5), angle * Math.PI / 180)
-            .scale(Point.ORIGIN, scale)
+            cubes[level][i].cube.rotateZ(cubes[level][i].center, angle * Math.PI / 180)
           );
-
         }
       }
+
+      // for (var x = 0; x < dimension; x++) {
+      //   for (var y = 0; y < dimension; y++) {
+      //     var dx = (x - center) * 2;
+      //     var dy = (y - center) * 2;
+      //     iso.add(
+      //       cube(dx, dy, 0)
+      //       .rotateZ(Point(dx + 0.5, dy + 0.5, 0.5), angle * Math.PI / 180)
+      //     );
+      //
+      //   }
+      // }
+
       angle = angle === 180 ? 2 : angle + 2;
+    }, 1000 / fps);
   }
 
   // easeInCirc
@@ -76,7 +155,18 @@
 		return -c * (Math.sqrt(1 - (t/=d)*t) - 1) + b;
 	};
 
-  window.addEventListener('resize', function(event){
-    init();
-  });
+  function debounce(func, wait, immediate) {
+  	var timeout;
+  	return function() {
+  		var context = this, args = arguments;
+  		var later = function() {
+  			timeout = null;
+  			if (!immediate) func.apply(context, args);
+  		};
+  		var callNow = immediate && !timeout;
+  		clearTimeout(timeout);
+  		timeout = setTimeout(later, wait);
+  		if (callNow) func.apply(context, args);
+  	};
+  };
 })();
