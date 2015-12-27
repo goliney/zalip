@@ -1,7 +1,6 @@
 (function(){
   var canvas = document.getElementById('canvas');
   var context = canvas.getContext('2d');
-  context.globalCompositeOperation = 'destination-atop';
 
   var iso;
   var Point = Isomer.Point;
@@ -12,6 +11,9 @@
   var cubeHeight = 140;
   var dimensions;
   var center;
+
+  var counterOnScreen;
+  var counterNotOnScreen;
 
   var animationTimer;
   var angle;
@@ -59,11 +61,23 @@
     return Shape.Prism(origin);
   }
 
+  function isOnScreen(point) {
+    var translatedPoint = iso._translatePoint(point);
+    var isVisible =
+      (translatedPoint.x <= iso.canvas.width + cubeWidth/2) &&
+      (translatedPoint.y <= iso.canvas.height + cubeHeight) &&
+      (translatedPoint.x >= -cubeWidth/2) &&
+      (translatedPoint.y >= 0);
+    if (isVisible) { counterOnScreen++; } else { counterNotOnScreen++ };
+    return isVisible;
+  }
+
   function prepareCubes() {
     cubes = [];
+    counterOnScreen = counterNotOnScreen = 0;
     var centerX = Math.ceil(dimensions.x / 2);
     var centerY = Math.ceil(dimensions.y / 2);
-    var levelsNum = Math.max(centerX, centerY);
+    var levelsNum = Math.max(centerX, centerY) + 2;
 
     // very first level with only central cube
     var x = y = z = 0;
@@ -76,48 +90,45 @@
       var level = [];
 
       for (var j=i; j > -i; j--) {
-        if (Math.abs(j) > centerX || Math.abs(i) > centerY) {
-          break;
-        }
         var origin = new Point(j*2, i*2, z);
-        level.push({
-          cube: cube(origin),
-          center: origin.translate(0.5, 0.5, 0.5)
-        });
+        if (isOnScreen(origin)) {
+          level.push({
+            cube: cube(origin),
+            center: origin.translate(0.5, 0.5, 0.5)
+          });
+        }
       }
       for (var j=i; j > -i; j--) {
-        if (Math.abs(i) > centerX || Math.abs(j) > centerY) {
-          break;
-        }
         var origin = new Point(-i*2, j*2, z);
-        level.push({
-          cube: cube(origin),
-          center: origin.translate(0.5, 0.5, 0.5)
-        });
+        if (isOnScreen(origin)) {
+          level.push({
+            cube: cube(origin),
+            center: origin.translate(0.5, 0.5, 0.5)
+          });
+        }
       }
       for (var j=-i; j < i; j++) {
-        if (Math.abs(j) > centerX || Math.abs(i) > centerY) {
-          break;
-        }
         var origin = new Point(j*2, -i*2, z);
-        level.push({
-          cube: cube(origin),
-          center: origin.translate(0.5, 0.5, 0.5)
-        });
+        if (isOnScreen(origin)) {
+          level.push({
+            cube: cube(origin),
+            center: origin.translate(0.5, 0.5, 0.5)
+          });
+        }
       }
       for (var j=-i; j < i; j++) {
-        if (Math.abs(i) > centerX || Math.abs(j) > centerY) {
-          break;
-        }
         var origin = new Point(i*2, j*2, z);
-        level.push({
-          cube: cube(origin),
-          center: origin.translate(0.5, 0.5, 0.5)
-        });
+        if (isOnScreen(origin)) {
+          level.push({
+            cube: cube(origin),
+            center: origin.translate(0.5, 0.5, 0.5)
+          });
+        }
       }
 
       cubes.push(level);
     }
+    console.log('On:', counterOnScreen + 1, '; Out:', counterNotOnScreen, '; Total:', counterOnScreen + counterNotOnScreen + 1);
   }
 
   function animate() {
