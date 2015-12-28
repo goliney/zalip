@@ -70,7 +70,7 @@
   function setZeroHour() {
     start = new Date().getTime();
     var delayBeforeStart = 2000;
-    var delayBetweenTides = 350;
+    var delayBetweenTides = 250;
     var angleDuration = 2000;
     var verticalDuration = 2000;
     var cubeDuration = Math.max(angleDuration, verticalDuration);
@@ -185,9 +185,10 @@
 
 
         for (var i=0; i < cubes[level].length; i++) {
+          var k = i % 2 ? 1 : -1;
           iso.add(
             cubes[level][i].cube
-            .rotateZ(cubes[level][i].center, angle * Math.PI / 180)
+            .rotateZ(cubes[level][i].center, k * angle * Math.PI / 180)
             .translate(0, 0, vertical)
           );
         }
