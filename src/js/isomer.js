@@ -1,3 +1,10 @@
+/**
+	This excellent library was disfigured by me, and I ask God and @jdan for forgiveness
+
+	I'm so sorry...
+*/
+
+
 /*!
  * Isomer v0.2.5
  * http://jdan.github.io/isomer/

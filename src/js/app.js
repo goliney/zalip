@@ -1,3 +1,10 @@
+/**
+  Be aware of reading this code. I didn't care about how this code looks or even works.
+  All I wanted was to make cubes move, so don't judge me.
+
+  Seriously, you had better go away.
+*/
+
 (function(){
   var canvas = document.getElementById('canvas');
   var context = canvas.getContext('2d');
@@ -12,11 +19,11 @@
   var dimensions;
   var center;
 
-  var counterOnScreen;
-  var counterNotOnScreen;
-
   var animationTimer;
+
   var angle;
+  var vertical;
+
   var start;
   var time;
   var animationParams;
@@ -54,15 +61,29 @@
       originY: (canvas.height / 2) + cubeHeight
     });
 
-    animationParams = {
-      angle: {from: 0, to: -45, duration: 3000},
-      vertical: {from: 0, to: 2, duration: 3000}
-    };
-
-    start = new Date().getTime();
     prepareCubes();
 
+    setZeroHour();
     animate();
+  }
+
+  function setZeroHour() {
+    start = new Date().getTime();
+    var delayBeforeStart = 2000;
+    var delayBetweenTides = 350;
+    var angleDuration = 2000;
+    var verticalDuration = 2000;
+    var cubeDuration = Math.max(angleDuration, verticalDuration);
+    var duration = delayBeforeStart + cubes.length * delayBetweenTides + cubeDuration;
+
+    animationParams = {
+      duration: duration,
+      delayBeforeStart: delayBeforeStart,
+      delayBetweenTides: delayBetweenTides,
+      cubeDuration: cubeDuration,
+      angle: {from: 0, to: -90, duration: angleDuration},
+      vertical: {from: 0, to: 4, duration: verticalDuration}
+    };
   }
 
   function cube (origin) {
@@ -73,10 +94,9 @@
     var translatedPoint = iso._translatePoint(point);
     var isVisible =
       (translatedPoint.x <= iso.canvas.width + cubeWidth/2) &&
-      (translatedPoint.y <= iso.canvas.height + cubeHeight) &&
+      (translatedPoint.y <= iso.canvas.height + cubeHeight*3) &&
       (translatedPoint.x >= -cubeWidth/2) &&
       (translatedPoint.y >= 0);
-    if (isVisible) { counterOnScreen++; } else { counterNotOnScreen++ };
     return isVisible;
   }
 
@@ -85,7 +105,7 @@
     counterOnScreen = counterNotOnScreen = 0;
     var centerX = Math.ceil(dimensions.x / 2);
     var centerY = Math.ceil(dimensions.y / 2);
-    var levelsNum = Math.max(centerX, centerY) + 2;
+    var levelsNum = Math.max(centerX, centerY) + 4;
 
     // very first level with only central cube
     var x = y = z = 0;
@@ -136,40 +156,52 @@
 
       cubes.push(level);
     }
-    console.log('On:', counterOnScreen + 1, '; Out:', counterNotOnScreen, '; Total:', counterOnScreen + counterNotOnScreen + 1);
   }
 
-  var tick = 1
   function animate() {
     animationTimer = setTimeout(function() {
       requestAnimationFrame(animate);
       iso.canvas.clear();
 
       time = new Date().getTime() - start;
-      angle = easing(
-        time,
-        animationParams.angle.from,
-        animationParams.angle.to - animationParams.angle.from,
-        animationParams.angle.duration
-      );
 
-      for (var level=0; level < cubes.length; level++) {
+      for (var level = cubes.length-1; level >= 0; level--) {
+        var levelTime = time - animationParams.delayBeforeStart - level * animationParams.delayBetweenTides;
+        levelTime = levelTime > 0 ? levelTime : 0;
+        var angleTime = levelTime < animationParams.angle.duration ? levelTime : animationParams.angle.duration;
+        var verticalTime = levelTime < animationParams.vertical.duration ? levelTime : animationParams.vertical.duration;
+        angle = easeInOutCubic(
+          angleTime,
+          animationParams.angle.from,
+          animationParams.angle.to - animationParams.angle.from,
+          animationParams.angle.duration
+        );
+        vertical = easeInOutCubic(
+          verticalTime,
+          animationParams.vertical.from,
+          animationParams.vertical.to - animationParams.vertical.from,
+          animationParams.vertical.duration
+        );
+
+
         for (var i=0; i < cubes[level].length; i++) {
           iso.add(
-            cubes[level][i].cube.rotateZ(cubes[level][i].center, angle * Math.PI / 90)
+            cubes[level][i].cube
+            .rotateZ(cubes[level][i].center, angle * Math.PI / 180)
+            .translate(0, 0, vertical)
           );
         }
       }
-      if (time >= animationParams.angle.duration) start = new Date().getTime();
+      if (time >= animationParams.duration) {
+        setZeroHour();
+      }
     }, 1000 / fps);
   }
 
     // t - current time, b - start value, c - change in value, d - duration
-  function easing(t, b, c, d) {
-    if (t==0) return b;
-		if (t==d) return b+c;
-		if ((t/=d/2) < 1) return c/2 * Math.pow(2, 10 * (t - 1)) + b;
-		return c/2 * (-Math.pow(2, -10 * --t) + 2) + b;
+  function easeInOutCubic(t, b, c, d) {
+    if ((t/=d/2) < 1) return c/2*t*t*t + b;
+		return c/2*((t-=2)*t*t + 2) + b;
 	};
 
   function debounce(func, wait, immediate) {
